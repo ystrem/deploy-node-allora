@@ -9,7 +9,7 @@
       private: false
 
   vars:
-    NETWORK: edgenet
+    NETWORK: v2testnet
     GENESIS_URL: "https://raw.githubusercontent.com/allora-network/networks/main/{{ NETWORK }}/genesis.json"
     SEEDS_URL: "https://raw.githubusercontent.com/allora-network/networks/main/{{ NETWORK }}/seeds.txt"
     APP_HOME: "/root/.allorad"
@@ -88,7 +88,7 @@
       git:
         repo: 'https://github.com/allora-network/allora-chain.git'
         dest: "{{ ansible_env.HOME }}/allora-chain"
-        version: "tags/v0.2.7"
+        version: "tags/v0.2.11"
         force: yes
 
     - name: Run make install
