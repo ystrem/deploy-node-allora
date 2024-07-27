@@ -9,16 +9,20 @@
       private: false
 
   vars:
-    NETWORK: v2testnet
+    NETWORK: allora-testnet-1
     GENESIS_URL: "https://raw.githubusercontent.com/allora-network/networks/main/{{ NETWORK }}/genesis.json"
     SEEDS_URL: "https://raw.githubusercontent.com/allora-network/networks/main/{{ NETWORK }}/seeds.txt"
+    PEERS_URL: "https://raw.githubusercontent.com/allora-network/networks/main/{{ NETWORK }}/peers.txt"
     APP_HOME: "/root/.allorad"
     INIT_FLAG: "{{ APP_HOME }}/.initialized"
     KEYRING_BACKEND: test
     GENESIS_FILE: "{{ APP_HOME }}/config/genesis.json"
     DENOM: uallo
     SEEDS_FILE: "/tmp/seeds.txt"
+    PEERS_FILE: "/tmp/peers.txt"
     GO_VERSION: "1.22.5"
+    ADDRBOOK_URL: "https://snapshots.polkachu.com/testnet-addrbook/allora/addrbook.json"
+    ADDRBOOK_FILE: "{{ APP_HOME }}/config/addrbook.json"
 
   tasks:
     - name: Update and upgrade apt packages
@@ -88,7 +92,7 @@
       git:
         repo: 'https://github.com/allora-network/allora-chain.git'
         dest: "{{ ansible_env.HOME }}/allora-chain"
-        version: "tags/v0.2.11"
+        version: "tags/v0.2.14"
         force: yes
 
     - name: Run make install
@@ -152,6 +156,20 @@
       set_fact:
         seeds: "{{ seeds_content.content | b64decode }}"
 
+    - name: Download peers file
+      get_url:
+        url: "{{ PEERS_URL }}"
+        dest: "{{ PEERS_FILE }}"
+
+    - name: Read peers from file
+      slurp:
+        src: "{{ PEERS_FILE }}"
+      register: peers_content
+
+    - name: Decode peers content
+      set_fact:
+        peers: "{{ peers_content.content | b64decode }}"    
+
     - name: Configure pruning to save storage
       ansible.builtin.shell: |
         sed -i \
@@ -183,6 +201,11 @@
       args:
         executable: /bin/bash
 
+    - name: Download addrbook.json
+      get_url:
+        url: "{{ ADDRBOOK_URL }}"
+        dest: "{{ ADDRBOOK_FILE }}"
+
     - name: Create systemd service file from template
       template:
         src: templates/allora-node.service.yml.j2
@@ -192,6 +215,7 @@
         moniker: "{{ moniker }}"
         denom: "{{ DENOM }}"
         seeds: "{{ seeds }}"
+        peers: "{{ peers }}"
 
     - name: Reload systemd daemon
       systemd:
@@ -202,5 +226,3 @@
         name: allora-node
         enabled: true
         state: started
-
-    
