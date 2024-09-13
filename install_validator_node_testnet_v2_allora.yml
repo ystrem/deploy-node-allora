@@ -23,8 +23,8 @@
     GO_VERSION: "1.23.0"
     ADDRBOOK_URL: "https://snapshots.polkachu.com/testnet-addrbook/allora/addrbook.json"
     ADDRBOOK_FILE: "{{ APP_HOME }}/config/addrbook.json"
-    SNAPSHOT_BASE_URL: "https://server-3.itrocket.net/testnet/allora/"
-    SNAPSHOT_REGEX: "allora_.*_snap.tar.lz4"
+    SNAPSHOT_BASE_URL: "https://www.polkachu.com/testnets/allora/snapshots"
+    SNAPSHOT_REGEX: "allora_*.tar.lz4"
 
   tasks:
     - name: Update and upgrade apt packages
