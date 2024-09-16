@@ -7,6 +7,9 @@
     - name: moniker
       prompt: "Enter your node name"
       private: false
+    - name: snapshot_filename
+      prompt: "Enter the snapshot filename (located in /root/)"
+      private: false
 
   vars:
     NETWORK: allora-testnet-1
@@ -23,8 +26,6 @@
     GO_VERSION: "1.23.0"
     ADDRBOOK_URL: "https://snapshots.polkachu.com/testnet-addrbook/allora/addrbook.json"
     ADDRBOOK_FILE: "{{ APP_HOME }}/config/addrbook.json"
-    SNAPSHOT_BASE_URL: "https://www.polkachu.com/testnets/allora/snapshots"
-    SNAPSHOT_REGEX: "allora_*.tar.lz4"
 
   tasks:
     - name: Update and upgrade apt packages
@@ -42,6 +43,7 @@
           - build-essential
           - gcc
           - lz4
+          - pv
         state: present
 
     - name: Check if /usr/local/go exists
@@ -256,48 +258,17 @@
       systemd:
         daemon_reload: true
 
-    - name: Enable and start Allora Node service
+    - name: Enable and stop Allora Node service
       systemd:
         name: allora-node
         enabled: true
         state: stopped
         daemon_reload: yes
-        
-  
-    - name: Get latest snapshot filename
-      uri:
-        url: "{{ SNAPSHOT_BASE_URL }}"
-        return_content: yes
-      register: snapshot_page
-
-    - name: Extract latest snapshot filename
-      set_fact:
-        snapshot_filename: "{{ snapshot_page.content | regex_findall(SNAPSHOT_REGEX) | sort | last }}"
-
-    - name: Display snapshot filename
-      debug:
-        msg: "Downloading snapshot: {{ snapshot_filename }}"
-    
-    
-    - name: Download snapshot
-      get_url:
-        url: "{{ SNAPSHOT_BASE_URL }}{{ snapshot_filename }}"
-        dest: "/root/{{ snapshot_filename }}"
-      register: download_result
-
-    - name: Show download result
-      debug:
-        var: download_result
 
     - name: Reset the Node
       command: allorad comet unsafe-reset-all --keep-addr-book
       environment:
           PATH: "{{ ansible_env.PATH }}:/usr/local/go/bin:{{ ansible_env.HOME }}/go/bin"    
-
-    - name: Install pv
-      apt:
-        name: pv
-        state: present           
 
     - name: Extract the Snapshot
       shell: |
@@ -322,7 +293,6 @@
         remote_src: yes
       when: priv_validator_state.stat.exists
 
-
     - name: Verify snapshot extraction
       stat:
         path: "{{ APP_HOME }}/data"
@@ -330,11 +300,4 @@
 
     - name: Show extraction result
       debug:
-        msg: "Snapshot extracted successfully: {{ data_dir.stat.exists }}"    
-
-    - name: Clean Up snapshot file
-      file:
-        path: "/root/{{ snapshot_filename }}"
-        state: absent
-
-
+        msg: "Snapshot extracted successfully: {{ data_dir.stat.exists }}"
